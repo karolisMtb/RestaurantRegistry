@@ -5,7 +5,7 @@ namespace RestaurantRegistry.Interfases
 {
     public interface IFoodItemRepository
     {
-        List<FoodItem> OrderDrinks(int numberOfItems);
-        List<FoodItem> OrderMeals(int numberOfItems);
+        List<DrinkItem> OrderDrinks(int numberOfItems);
+        List<MealItem> OrderMeals(int numberOfItems);
     }
 }

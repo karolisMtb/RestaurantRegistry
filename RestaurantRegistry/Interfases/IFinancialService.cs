@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using RestaurantRegistry.Models;
 
 namespace RestaurantRegistry.Interfases
 {
@@ -10,5 +6,6 @@ namespace RestaurantRegistry.Interfases
     {
         double GetTotalSales();
         double GetTotalProfit();
+        double GetTableAmountToPay(Table table);
     }
 }

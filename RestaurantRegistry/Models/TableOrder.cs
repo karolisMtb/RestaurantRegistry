@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RestaurantRegistry.Models
 {
@@ -11,7 +8,7 @@ namespace RestaurantRegistry.Models
         public Guid OrderNumber { get; set; }
         public int TableNumber { get; set; }
         public List<FoodItem> foodItems { get; set; }
-        public double AmountToPay { get; set; }
+        public bool IsPaid { get; set; } = true;
 
         public TableOrder(int tableNumber, Guid OrderNumber)
         {

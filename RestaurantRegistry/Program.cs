@@ -11,16 +11,15 @@ namespace RestaurantRegistry
         {
             IFoodItemRepository foodItemRepository = new FoodItemRepository();
             
-            TableRepository tableRepository = new TableRepository();
+            //TableRepository tableRepository = new TableRepository();
             TableOrderRepository tableOrderRepository = new TableOrderRepository();
-            TableOrderGenerator tableOrderGenerator = new TableOrderGenerator(foodItemRepository, tableOrderRepository);
-
+            
             IFinancialService financialService = new FinancialService(tableOrderRepository);
 
-            RestaurantService restaurantService = new RestaurantService(foodItemRepository, tableOrderGenerator, tableRepository, tableOrderRepository);
+
+            RestaurantService restaurantService = new RestaurantService(tableOrderRepository);
             restaurantService.StartService();
 
-            var allOrders = tableOrderRepository.allOrders; // tikrinti kodel i tableOrderRepository neateina tableOrder
         }
     }
 }

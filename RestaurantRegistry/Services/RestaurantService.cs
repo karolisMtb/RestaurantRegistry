@@ -3,59 +3,68 @@ using RestaurantRegistry.Models;
 using RestaurantRegistry.Repositories;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using System.Xml;
 
 namespace RestaurantRegistry.Services
 {
     public class RestaurantService : IRestaurantService
     {
-
-        IFoodItemRepository ifoodItemRepository;
-        TableOrderGenerator orderGenerator;
         TableRepository tableRepository;
         TableOrderRepository tableOrderRepository;
+        ReceiptGenerator receiptGenerator;
+        ReceiptRepository receiptRepository;
 
         public const int maximumSeatCount = 4;
         public const int minimumSeatCount = 2;
 
-        public RestaurantService(IFoodItemRepository ifoodItemRepository, TableOrderGenerator orderGenerator, TableRepository tableRepository, TableOrderRepository tableOrderRepository)
+        public RestaurantService(TableOrderRepository tableOrderRepository)
         {
-            this.ifoodItemRepository = ifoodItemRepository;
-            this.orderGenerator = orderGenerator;
-            this.tableRepository = tableRepository;
+            tableRepository = new TableRepository();
             this.tableOrderRepository = tableOrderRepository;
         }
 
         public async Task StartService()
         {
+            receiptRepository = new ReceiptRepository();
             Task.Delay(new Random().Next(5000, 10000));
 
-            for(int i = 0; i < 2; i++)
+            for(int i = 0; i < 20; i++)
             {
                 int customerCount = await GenerateRandomCustomerCount();
                 int tableCountNeeded = GetTableCountNeeded(customerCount);
             
                 if(GetFreeSeatsCount() >= customerCount)
                 {
-                    Console.WriteLine($"{customerCount} customer need to be seated");
-                    Console.WriteLine($"We have {GetFreeSeatsCount()} seats available");
-
                     FindAvailableSeats(customerCount, tableCountNeeded);
                     TakeOrders();
+                    receiptGenerator = new ReceiptGenerator(tableOrderRepository, receiptRepository, tableRepository);
+                    receiptGenerator.GenerateRestaurantReceipt();
+
+
+                    // visa sita logika prideti po TakeOrder() iskvietimo
+                    // delay 15- 30 minutes
+                    // Call GenerateReceipts
+                    // Change table status
+                    // change isPaid status
                 }
                 else
                 {
                     // throw new Exception
-                    Console.WriteLine("Neturim laisvu staliuku");
+                    Console.WriteLine("There are no free tables");
                 }
             }
+
+
+            Console.WriteLine("Pries delay");
+
+            Task.Delay(1000);
+
+            Console.WriteLine("Po delay");
+
+            CustomerReceipt cr = await receiptGenerator.GenerateCustomerReceipt();
+            Console.ReadKey();
+            GetReceipt();
         }
-        // close table, change status GenerateReceipt(), DisplayReceipt()
-        // pabandyti async panaudoti, kad kelis staliukai vienu metu uzsisakinetu maista, random laika sedetu ir susimoketu
-        // GenerateRestaurantStats();
 
         public async Task<int> GenerateRandomCustomerCount()
         {
@@ -79,7 +88,7 @@ namespace RestaurantRegistry.Services
             return tableCountNeeded;
         }
 
-        private int GetFreeSeatsCount()
+        public int GetFreeSeatsCount()
         {
             int seatsCount = 0;
             foreach (Table table in tableRepository.tables)
@@ -106,6 +115,7 @@ namespace RestaurantRegistry.Services
                         table.Status = Table.TAKEN_STATE;
                         table.SeatsTaken = max;
                         found++;
+
                         break;
                     }                    
                     else if(numOfPeopleToBeSeated < max && numOfPeopleToBeSeated > min)
@@ -137,26 +147,36 @@ namespace RestaurantRegistry.Services
 
         private void SeatCustomer(int numOfCustomersToBeSeated, Table table)
         {
-            Console.WriteLine($"{numOfCustomersToBeSeated} customers are seated at {table.Number} table");
             table.SeatsTaken = numOfCustomersToBeSeated;
             numOfCustomersToBeSeated -= numOfCustomersToBeSeated;
             table.Status = Table.TAKEN_STATE;
+            table.TableTakingTime = table.TableTakingTime.AddMinutes(new Random().Next(0, 5));
         }
 
-        private void TakeOrders() // cia yra naudojama table modelis ir jo listas (Orders)
+        private void TakeOrders()
         {
             foreach (Table table in tableRepository.tables)
             {
                 Guid tableOrderNumber = Guid.NewGuid();
+                FoodItemRepository foodItemRepository = new FoodItemRepository();
 
-                if (table.Orders.Count == 0 && table.Status == Table.TAKEN_STATE)
+
+                if (table.OrdersCount == 0 && table.Status == Table.TAKEN_STATE)
                 {
-                    for (int i = 0; i < table.SeatsTaken; i++) // yra sukuriami tiek uzsakymu kiek yra sedimu vietu
+                    TableOrder newOrder = new TableOrder(table.Number, tableOrderNumber);
+
+                    for (int i = 0; i < table.SeatsTaken; i++)
                     {
-                        table.Orders.Add(new TableOrderGenerator(ifoodItemRepository, tableOrderRepository).GenerateTableOrder(table, tableOrderNumber));
+                        newOrder = new TableOrderGenerator(foodItemRepository).GenerateTableOrder(table, tableOrderNumber);
+                        table.OrdersCount++;
                     }
+                    tableOrderRepository.allOrders.Add(newOrder);
                 }
-            }
+            }           
+        }
+        public void GetReceipt()
+        {
+
         }
     }
 

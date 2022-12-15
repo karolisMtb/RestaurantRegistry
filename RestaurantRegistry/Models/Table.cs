@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RestaurantRegistry.Models
 {
@@ -15,9 +11,9 @@ namespace RestaurantRegistry.Models
         public int SeatCount { get; set; }
         public int SeatsTaken { get; set; }
         public string Status { get; set; } = FREE_STATE;
-        public DateTime TableTakingTime { get; set; } = DateTime.Now;
+        public DateTime TableTakingTime { get; set; } = new DateTime(2022,12,10,8,0,0);
         public DateTime? TableLeavingTime { get; set; }
-        public List<TableOrder> Orders { get; set; }
+        public int OrdersCount { get; set; }
 
         public Table(int number, int seatCount, int seatsTaken, string status)
         {
@@ -25,7 +21,6 @@ namespace RestaurantRegistry.Models
             SeatCount = seatCount;
             SeatsTaken = seatsTaken;
             Status = status;
-            Orders = new List<TableOrder>();
         }
     }
 }
