@@ -9,16 +9,16 @@ namespace RestaurantRegistry
     {
         static void Main(string[] args)
         {
-            IFoodItemRepository foodItemRepository = new FoodItemRepository();
-            
-            //TableRepository tableRepository = new TableRepository();
-            TableOrderRepository tableOrderRepository = new TableOrderRepository();
-            
-            IFinancialService financialService = new FinancialService(tableOrderRepository);
+            RestaurantService restaurantService = new RestaurantService();
 
+            int daysOfOperation = 3;
 
-            RestaurantService restaurantService = new RestaurantService(tableOrderRepository);
-            restaurantService.StartService();
+            for(int i = 0; i < daysOfOperation; i++)
+            {
+                restaurantService.StartService();
+                restaurantService.WriteRestraurantReportToFile();
+                restaurantService.SendReportToEmail();
+            }
 
         }
     }

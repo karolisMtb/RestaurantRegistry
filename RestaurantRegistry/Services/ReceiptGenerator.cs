@@ -3,7 +3,6 @@ using RestaurantRegistry.Models;
 using RestaurantRegistry.Repositories;
 using System;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace RestaurantRegistry.Services
 {
@@ -21,7 +20,7 @@ namespace RestaurantRegistry.Services
             this.tableRepository = tableRepository;
         }
 
-        public async Task<CustomerReceipt> GenerateCustomerReceipt()
+        public CustomerReceipt GenerateCustomerReceipt()
         {
             Table table = null;
             CustomerReceipt customerReceipt = null;
@@ -31,21 +30,22 @@ namespace RestaurantRegistry.Services
                 if(tableOrder.IsPaid == false)
                 {
                     table = tableRepository.tables.First(x => x.Number == tableOrder.TableNumber);
-                    
+                    table.TableLeavingTime = table.TableTakingTime.AddMinutes(new Random().Next(15, 30));
+
                     customerReceipt = new CustomerReceipt()
                     {
                         TableOpenTime = table.TableTakingTime,
                         TableCloseTime = tableOrderRepository.GetTableCloseTime(table),
                         OrderNumber = tableOrderRepository.GetOrderNumber(table),
                         TableOrders = tableOrderRepository.GetTableOrders(table),
-                        TotalSales = tableOrderRepository.GetTableAmountToPay(table)
+                        TotalSales = tableOrderRepository.GetTableSales(table)             
                     };
 
                     receiptRepository.customerReceiptList.Add(customerReceipt);
-                }
-                else
-                {
-                    Console.WriteLine($"Table {table.Number} has already paid");
+                    table.Status = Table.FREE_STATE;
+                    table.SeatsTaken = 0;
+                    tableOrder.IsPaid = true;
+                    table.OrdersCount = 0;
                 }
             }
 
@@ -57,10 +57,12 @@ namespace RestaurantRegistry.Services
             financialService = new FinancialService(tableOrderRepository);
             RestaurantReceipt salesReceipt = new RestaurantReceipt()
             {
-                // gauti to dienos data kol ji bega async
                 TotalSales = financialService.GetTotalSales(),
-                TotalProfit = financialService.GetTotalProfit()
+                TotalProfit = financialService.GetTotalProfit(),
+                TableAmountToPay = tableOrderRepository.GetTablesAmountToPay()
             };
+
+            receiptRepository.RestaurantReceipt = salesReceipt;
             return salesReceipt;
         }
     }

@@ -6,6 +6,7 @@ namespace RestaurantRegistry.Repositories
     public class ReceiptRepository
     {
         public List<Receipt> customerReceiptList = new List<Receipt>();
+        public RestaurantReceipt RestaurantReceipt { get; set; }
 
         public ReceiptRepository()
         {

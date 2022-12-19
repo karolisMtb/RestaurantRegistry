@@ -2,6 +2,7 @@
 using RestaurantRegistry.Models;
 using RestaurantRegistry.Repositories;
 using System;
+using System.Linq;
 
 namespace RestaurantRegistry.Services
 {
@@ -13,13 +14,16 @@ namespace RestaurantRegistry.Services
             this.allTableOrders = allTableOrders;
         }
 
+        double totalSales;
+        double totalProfit;
+
         public double GetTotalSales()
         {
-            double totalSales = 0;
+            totalSales = 0;
 
-            foreach (var order in allTableOrders.allOrders) // yra kiekvienas tableOrder kuriame yra listas visu foodItems kuriuos uzsisake
+            foreach (var order in allTableOrders.allOrders)
             {
-                if(order.IsPaid == false) // && table.Status == TAKEN_STATUS tikrinti
+                if(order.IsPaid == true)
                 {
                     foreach(var foodItem in order.foodItems)
                     {
@@ -31,19 +35,41 @@ namespace RestaurantRegistry.Services
                     Console.WriteLine("Nobody has paid yet");
                 }
             }
-
             Console.WriteLine($"Total sales for the day is {totalSales}");
             return totalSales;
         }
 
         public double GetTotalProfit()
         {
-            return 0;
+            totalProfit = 0;
+
+            foreach (var order in allTableOrders.allOrders)
+            {
+                if (order.IsPaid == true)
+                {
+                    foreach (var foodItem in order.foodItems)
+                    {
+                        totalProfit += foodItem.Profit;
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Table has not paid yet");
+                }
+            }
+            return totalProfit;
         }
 
         public double GetTableAmountToPay(Table table)
         {
-            return 0;
+            double amountToPay = 0;
+
+            TableOrder tableOrder = allTableOrders.allOrders.First(x => x.TableNumber == table.Number && x.IsPaid == false);
+            foreach(var foodItem in tableOrder.foodItems)
+            {
+                amountToPay += foodItem.SalePrice;
+            }
+            return amountToPay;
         }
     }
 }

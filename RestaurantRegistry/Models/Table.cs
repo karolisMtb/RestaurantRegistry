@@ -12,7 +12,7 @@ namespace RestaurantRegistry.Models
         public int SeatsTaken { get; set; }
         public string Status { get; set; } = FREE_STATE;
         public DateTime TableTakingTime { get; set; } = new DateTime(2022,12,10,8,0,0);
-        public DateTime? TableLeavingTime { get; set; }
+        public DateTime TableLeavingTime { get; set; }
         public int OrdersCount { get; set; }
 
         public Table(int number, int seatCount, int seatsTaken, string status)

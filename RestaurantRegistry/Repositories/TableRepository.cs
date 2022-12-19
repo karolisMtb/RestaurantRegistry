@@ -18,7 +18,6 @@ namespace RestaurantRegistry.Repositories
             new Table(18, 2, 0, "Free"),
             new Table(19, 2, 0, "Free"),
         };
-
         public TableRepository()
         {
 

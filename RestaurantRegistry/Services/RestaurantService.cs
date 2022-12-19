@@ -3,7 +3,8 @@ using RestaurantRegistry.Models;
 using RestaurantRegistry.Repositories;
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
+using System.IO;
+using System.Net.Mail;
 
 namespace RestaurantRegistry.Services
 {
@@ -17,56 +18,39 @@ namespace RestaurantRegistry.Services
         public const int maximumSeatCount = 4;
         public const int minimumSeatCount = 2;
 
-        public RestaurantService(TableOrderRepository tableOrderRepository)
+        public RestaurantService()
         {
             tableRepository = new TableRepository();
-            this.tableOrderRepository = tableOrderRepository;
+            receiptRepository = new ReceiptRepository();
         }
 
-        public async Task StartService()
+        public void StartService()
         {
-            receiptRepository = new ReceiptRepository();
-            Task.Delay(new Random().Next(5000, 10000));
+            tableOrderRepository = new TableOrderRepository();
 
             for(int i = 0; i < 20; i++)
             {
-                int customerCount = await GenerateRandomCustomerCount();
+                int customerCount = GenerateRandomCustomerCount();
                 int tableCountNeeded = GetTableCountNeeded(customerCount);
             
                 if(GetFreeSeatsCount() >= customerCount)
                 {
                     FindAvailableSeats(customerCount, tableCountNeeded);
                     TakeOrders();
-                    receiptGenerator = new ReceiptGenerator(tableOrderRepository, receiptRepository, tableRepository);
-                    receiptGenerator.GenerateRestaurantReceipt();
-
-
-                    // visa sita logika prideti po TakeOrder() iskvietimo
-                    // delay 15- 30 minutes
-                    // Call GenerateReceipts
-                    // Change table status
-                    // change isPaid status
                 }
                 else
                 {
-                    // throw new Exception
                     Console.WriteLine("There are no free tables");
+                    break;
                 }
             }
 
-
-            Console.WriteLine("Pries delay");
-
-            Task.Delay(1000);
-
-            Console.WriteLine("Po delay");
-
-            CustomerReceipt cr = await receiptGenerator.GenerateCustomerReceipt();
-            Console.ReadKey();
-            GetReceipt();
+            receiptGenerator = new ReceiptGenerator(tableOrderRepository, receiptRepository, tableRepository);
+            receiptGenerator.GenerateCustomerReceipt();
+            receiptGenerator.GenerateRestaurantReceipt();
         }
 
-        public async Task<int> GenerateRandomCustomerCount()
+        public int GenerateRandomCustomerCount()
         {
             int randomCustomerCount = new Random().Next(2, 5);
             return randomCustomerCount;
@@ -75,7 +59,6 @@ namespace RestaurantRegistry.Services
         public int GetTableCountNeeded(int customerNumber)
         {            
             int tableCountNeeded;
-            int numOfPeopleToBeSeated = customerNumber;
 
             if (customerNumber % maximumSeatCount == 0)
             {
@@ -101,59 +84,58 @@ namespace RestaurantRegistry.Services
 
         public List<Table> FindAvailableSeats(int numOfPeopleToBeSeated, int tableCountNeeded)
         {
-            int max = 4;
-            int min = 2;
+            int maxSeatCount = 4;
+            int minSeatCount = 2;
             int found = 0;
+            int randomSeatTakingTimeSpan = new Random().Next(10, 20);
 
-            do
+            foreach(Table table in tableRepository.tables)
             {
-                foreach(Table table in tableRepository.tables)
+                if (numOfPeopleToBeSeated >= maxSeatCount && table.Status == Table.FREE_STATE)
                 {
-                    if (numOfPeopleToBeSeated >= max && table.Status == Table.FREE_STATE)
+                    numOfPeopleToBeSeated -= table.SeatCount;
+                    table.Status = Table.TAKEN_STATE;
+                    table.SeatsTaken = maxSeatCount;
+                    table.TableTakingTime = table.TableLeavingTime.AddMinutes(randomSeatTakingTimeSpan);
+                    found++;
+                    break;
+                }                    
+                else if(numOfPeopleToBeSeated < maxSeatCount && numOfPeopleToBeSeated > minSeatCount)
+                {
+                    int restPeople = numOfPeopleToBeSeated;
+
+                    if ( table.SeatCount == maxSeatCount && table.Status == Table.FREE_STATE)
                     {
-                        numOfPeopleToBeSeated -= table.SeatCount;
-                        table.Status = Table.TAKEN_STATE;
-                        table.SeatsTaken = max;
+                        SeatCustomer(numOfPeopleToBeSeated, table);
                         found++;
-
                         break;
-                    }                    
-                    else if(numOfPeopleToBeSeated < max && numOfPeopleToBeSeated > min)
-                    {
-                        int restPeople = numOfPeopleToBeSeated;
-
-                        if ( table.SeatCount == max && table.Status == Table.FREE_STATE)
-                        {
-                            SeatCustomer(numOfPeopleToBeSeated, table);
-                            found++;
-                            break;
-                        }
                     }
-                    else if (numOfPeopleToBeSeated <= min)
+                }
+                else if (numOfPeopleToBeSeated <= minSeatCount)
+                {
+                    if(table.SeatCount == minSeatCount && table.Status == Table.FREE_STATE)
                     {
-                        if(table.SeatCount == min && table.Status == Table.FREE_STATE)
-                        {
-                            SeatCustomer(numOfPeopleToBeSeated, table);
-                            found++;
-                            break;
-                        }
+                        SeatCustomer(numOfPeopleToBeSeated, table);
+                        found++;
+                        break;
                     }
                 }
             }
-            while (found < tableCountNeeded);
 
             return tableRepository.tables;
         }
 
-        private void SeatCustomer(int numOfCustomersToBeSeated, Table table)
+        public void SeatCustomer(int numOfCustomersToBeSeated, Table table)
         {
+            int randomSeatTakingTimeSpan = new Random().Next(10, 20);
+
             table.SeatsTaken = numOfCustomersToBeSeated;
             numOfCustomersToBeSeated -= numOfCustomersToBeSeated;
             table.Status = Table.TAKEN_STATE;
-            table.TableTakingTime = table.TableTakingTime.AddMinutes(new Random().Next(0, 5));
+            table.TableTakingTime = table.TableLeavingTime.AddMinutes(randomSeatTakingTimeSpan);
         }
 
-        private void TakeOrders()
+        public void TakeOrders()
         {
             foreach (Table table in tableRepository.tables)
             {
@@ -174,9 +156,45 @@ namespace RestaurantRegistry.Services
                 }
             }           
         }
-        public void GetReceipt()
-        {
 
+        public void WriteRestraurantReportToFile()
+        {
+            string path = "C:\\Users\\Karolis\\source\\repos\\RestsurantRegistryApp\\RestaurantRegistry\\Files\\";
+            string restaurantReportFile = "RestaurantReport.json";
+            string customerReportFile = "CustomerReport.json";
+
+            if(File.Exists(path += restaurantReportFile))
+            {
+                File.Delete(path + restaurantReportFile);
+            }
+
+            if(File.Exists(path += customerReportFile))
+            {
+                File.Delete(path += customerReportFile);
+            }
+
+        }
+
+        public void SendReportToEmail()
+        {
+            SmtpClient smtpClient = new SmtpClient("smtp.gmail.com", 587);
+
+            MailMessage mail = new MailMessage();
+            mail.From = new MailAddress("senderEmail");
+            mail.To.Add("receiverEmail");
+            mail.Subject = "Test mail";
+            mail.Body = "Mail with attachment";
+            mail.Attachments.Add(new Attachment("C:\\Users\\Karolis\\source\\repos\\RestsurantRegistryApp\\RestaurantRegistry\\Files\\RestaurantReport.json"));
+            mail.Attachments.Add(new Attachment("C:\\Users\\Karolis\\source\\repos\\RestsurantRegistryApp\\RestaurantRegistry\\Files\\CustomerReport.json"));
+
+            smtpClient.Port = 587;
+            smtpClient.Credentials = new System.Net.NetworkCredential("seenderEmail", "myPSW");
+            smtpClient.EnableSsl = true;
+            smtpClient.DeliveryMethod = SmtpDeliveryMethod.Network;
+
+            smtpClient.Send(mail);
+
+            Console.WriteLine("Email sent");
         }
     }
 

@@ -17,8 +17,7 @@ namespace RestaurantRegistry.Repositories
 
         public DateTime GetTableCloseTime(Table table)
         {
-           // return table.TableLeavingTime.Value; // pirma stalas yra uzdaromas, o tada pakeiciamas statusas i table free and paid
-           return DateTime.Now;
+            return table.TableLeavingTime;
         }
 
         public Guid GetOrderNumber(Table table)
@@ -30,13 +29,28 @@ namespace RestaurantRegistry.Repositories
         {
             return allOrders.FindAll(x => x.TableNumber == table.Number && x.IsPaid == false).ToList();
         }
-
-        public double GetTableAmountToPay(Table table)
+        public double GetTableSales(Table table)
         {
             double amountToPay = 0;
             foreach (TableOrder order in allOrders)
             {
-                if(order.TableNumber == table.Number && order.IsPaid == false)
+                if (table.Number == order.TableNumber && order.IsPaid == false)
+                {
+                    foreach (FoodItem foodItem in order.foodItems)
+                    {
+                        amountToPay += foodItem.SalePrice;
+                    }
+                }
+            }
+            return amountToPay;
+        }
+
+        public double GetTablesAmountToPay()
+        {
+            double amountToPay = 0;
+            foreach (TableOrder order in allOrders)
+            {
+                if(order.IsPaid == false)
                 {
                     foreach(FoodItem foodItem in order.foodItems)
                     {

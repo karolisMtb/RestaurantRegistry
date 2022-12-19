@@ -15,6 +15,7 @@ namespace RestaurantRegistry.Models
             this.OrderNumber = OrderNumber;
             TableNumber = tableNumber;
             foodItems = new List<FoodItem>();
+            IsPaid = false;
         }
     }
 }
